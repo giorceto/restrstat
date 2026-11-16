@@ -7,6 +7,8 @@
 # Как се отваря: https://sales.tours-club.com/restrstat/
 #   прокси (.50) → nginx на tc-sales → location /restrstat/ → 127.0.0.1:8081 → nginx на restrstat → PHP-FPM (пул restrstat)
 set -euo pipefail
+# при „su“ без „-“ PATH-ът е на обикновения потребител — без /usr/sbin (useradd, nginx, php-fpm)
+export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$PATH"
 
 APP_USER="${APP_USER:-restrstat}"
 APP_DIR="${APP_DIR:-/srv/restrstat}"
