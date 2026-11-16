@@ -32,6 +32,7 @@ php -m | grep -qi pdo_dblib || { echo "Няма pdo_dblib (php$PHP-sybase)." >&2
 grep -q '^\[samo\]' /etc/freetds/freetds.conf || echo "ВНИМАНИЕ: няма раздел [samo] в /etc/freetds/freetds.conf — SAMO няма да се вижда." >&2
 
 say "Потребител $APP_USER"
+command -v useradd >/dev/null || apt-get install -y -q passwd >/dev/null
 id "$APP_USER" >/dev/null 2>&1 || useradd --system --create-home --shell /bin/bash "$APP_USER"
 install -d -o "$APP_USER" -g "$APP_USER" -m 750 "$APP_DIR"
 usermod -aG "$APP_USER" www-data
