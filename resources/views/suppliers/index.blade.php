@@ -10,10 +10,10 @@
       @foreach ($suppliers as $s)<option value="{{ $s->samo_inc }}" @selected($supplier === (int) $s->samo_inc)>{{ $s->name ?? '№ '.$s->samo_inc }}</option>@endforeach
     </select>
   </label>
-  <label>Продадени от <input type="date" name="sold_from" value="{{ $v('sold_from') }}"></label>
-  <label>до <input type="date" name="sold_to" value="{{ $v('sold_to') }}"></label>
-  <label>Настаняване от <input type="date" name="in_from" value="{{ $v('in_from') }}"></label>
-  <label>до <input type="date" name="in_to" value="{{ $v('in_to') }}"></label>
+  <label>Продадени от <input type="text" class="date" placeholder="дд.мм.гггг" autocomplete="off" name="sold_from" value="{{ $v('sold_from') }}"></label>
+  <label>до <input type="text" class="date" placeholder="дд.мм.гггг" autocomplete="off" name="sold_to" value="{{ $v('sold_to') }}"></label>
+  <label>Настаняване от <input type="text" class="date" placeholder="дд.мм.гггг" autocomplete="off" name="in_from" value="{{ $v('in_from') }}"></label>
+  <label>до <input type="text" class="date" placeholder="дд.мм.гггг" autocomplete="off" name="in_to" value="{{ $v('in_to') }}"></label>
   @if ($all)<input type="hidden" name="all" value="1">@endif
   <button class="btn">Покажи</button>
   <span class="note">

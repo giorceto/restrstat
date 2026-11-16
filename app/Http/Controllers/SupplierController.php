@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\Filters;
 use App\Services\Statistics;
-use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -17,8 +17,7 @@ class SupplierController extends Controller
             ->when(! $all, fn ($q) => $q->where('is_turkish', true))
             ->orderBy('name')->get(['samo_inc', 'name']);
         $supplier = $request->integer('supplier') ?: null;
-        $d = fn (string $k) => preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) $request->query($k))
-            ? CarbonImmutable::createFromFormat('!Y-m-d', $request->query($k)) : null;
+        $d = fn (string $k) => Filters::date($request->query($k));
         $filters = ['sold_from' => $d('sold_from'), 'sold_to' => $d('sold_to'), 'in_from' => $d('in_from'), 'in_to' => $d('in_to')];
         $result = $supplier ? $stats->obligations($supplier, ...array_values($filters)) : null;
         if ($result && $request->query('export') === 'csv') {

@@ -79,3 +79,7 @@ th a.on { color: var(--accent); }
   .top-in { justify-content: space-between; }
   .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+input.date, input.date + input { width: 120px; }
+.flatpickr-calendar { font-size: 13px; }
+:root[data-theme="dark"] .flatpickr-calendar { filter: invert(.9) hue-rotate(180deg); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .flatpickr-calendar { filter: invert(.9) hue-rotate(180deg); } }

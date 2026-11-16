@@ -5,7 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <title>@yield('title', 'Статистики') · Tours Club</title>
-<link rel="stylesheet" href="{{ asset('css/app.css') }}?v=1">
+<link rel="stylesheet" href="{{ asset('vendor/flatpickr/flatpickr.min.css') }}?v=4.6.13">
+<link rel="stylesheet" href="{{ asset('css/app.css') }}?v=2">
 </head>
 <body>
 @auth
@@ -22,6 +23,9 @@
 <main>
 @yield('content')
 </main>
+<script src="{{ asset('vendor/flatpickr/flatpickr.min.js') }}?v=4.6.13"></script>
+<script src="{{ asset('vendor/flatpickr/bg.js') }}?v=4.6.13"></script>
+<script src="{{ asset('js/dates.js') }}?v=1"></script>
 @stack('scripts')
 </body>
 </html>

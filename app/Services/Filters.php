@@ -34,16 +34,21 @@ final class Filters
         return new self($from, $to, $basis, $channel);
     }
 
-    private static function date(mixed $v): ?CarbonImmutable
+    /** гггг-мм-дд или дд.мм.гггг */
+    public static function date(mixed $v): ?CarbonImmutable
     {
-        if (! is_string($v) || ! preg_match('/^\d{4}-\d{2}-\d{2}$/', $v)) {
+        if (! is_string($v)) {
             return null;
         }
-        try {
-            return CarbonImmutable::createFromFormat('!Y-m-d', $v);
-        } catch (\Throwable) {
+        $v = trim($v);
+        if (preg_match('/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/', $v, $m)) {
+            $v = sprintf('%04d-%02d-%02d', $m[3], $m[2], $m[1]);
+        }
+        if (! preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $v, $m) || ! checkdate((int) $m[2], (int) $m[3], (int) $m[1])) {
             return null;
         }
+
+        return CarbonImmutable::createFromFormat('!Y-m-d', $v);
     }
 
     /** Същият период година по-рано. */

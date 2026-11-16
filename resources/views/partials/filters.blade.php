@@ -6,8 +6,8 @@
   @foreach ($keep ?? [] as $k => $v)
     @if ($v !== null)<input type="hidden" name="{{ $k }}" value="{{ $v }}">@endif
   @endforeach
-  <label>От <input type="date" name="from" value="{{ $f->from->toDateString() }}"></label>
-  <label>До <input type="date" name="to" value="{{ $f->to->toDateString() }}"></label>
+  <label>От <input type="text" class="date" placeholder="дд.мм.гггг" autocomplete="off" name="from" value="{{ $f->from->toDateString() }}"></label>
+  <label>До <input type="text" class="date" placeholder="дд.мм.гггг" autocomplete="off" name="to" value="{{ $f->to->toDateString() }}"></label>
   <label>Периодът е
     <select name="basis">
       @foreach (\App\Services\Filters::BASES as $k => $label)<option value="{{ $k }}" @selected($f->basis === $k)>{{ $label }}</option>@endforeach
