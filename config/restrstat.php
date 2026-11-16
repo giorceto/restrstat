@@ -23,14 +23,16 @@ return [
     'order_columns' => [
         'supplier' => env('SAMO_ORDER_SUPPLIER', 'partner'), // доставчикът на услугата (dbo.partner)
         'hotel' => env('SAMO_ORDER_HOTEL', 'hotel'),
-        'town' => env('SAMO_ORDER_TOWN', 'town'),
-        'country' => env('SAMO_ORDER_COUNTRY', 'state'),
+        // в dbo.[order] няма град и държава — идват от хотела (dbo.hotel.town → dbo.town.state), а държавата на
+        // заявката и от dbo.claim.state
+        'town' => env('SAMO_ORDER_TOWN', ''),
+        'country' => env('SAMO_ORDER_COUNTRY', ''),
         'date_from' => env('SAMO_ORDER_DATE_FROM', 'datebeg'),
         'date_to' => env('SAMO_ORDER_DATE_TO', 'dateend'),
         'status' => env('SAMO_ORDER_STATUS', 'status'),
     ],
-    // колоната за държава в dbo.partner (за да се познаят турските фирми)
-    'partner_country_column' => env('SAMO_PARTNER_COUNTRY', 'state'),
+    // колоната за държава в dbo.partner (за да се познаят турските фирми); ако няма — от града му (dbo.partner.town)
+    'partner_country_column' => env('SAMO_PARTNER_COUNTRY', ''),
     // как се казва Турция в dbo.state (част от името, без значение на малки/големи букви)
     'turkey_names' => ['турция', 'turkey', 'türkiye', 'turkiye'],
 ];

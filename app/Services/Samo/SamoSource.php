@@ -13,7 +13,7 @@ interface SamoSource
      * променените от тогава.
      *
      * @return list<array{inc: int, partner: ?int, author: ?int, created_at: string, date_from: ?string, date_to: ?string,
-     *     nights: ?int, status: ?int, cancelled_on: ?string, commission_pct: ?string, changed_at: ?string, pax: ?int}>
+     *     nights: ?int, status: ?int, cancelled_on: ?string, commission_pct: ?string, changed_at: ?string, pax: ?int, country?: ?int}>
      */
     public function claims(int $afterInc, int $limit, ?string $since = null): array;
 

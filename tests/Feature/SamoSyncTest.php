@@ -66,10 +66,11 @@ class SamoSyncTest extends TestCase
             $this->claim(10),
             $this->claim(11, ['partner' => 700, 'commission_pct' => '8']),
             $this->claim(12, ['status' => 3, 'cancelled_on' => '2026-06-21']),
+            $this->claim(13, ['country' => 1]), // без хотел — държавата от dbo.claim.state
         ];
         $fake->services = [
             $this->service(1, 10), $this->service(2, 10, ['hotel' => null, 'supplier' => 903, 'country' => 1, 'sale' => '.45', 'net' => '.40']),
-            $this->service(3, 11), $this->service(4, 12),
+            $this->service(3, 11), $this->service(4, 12), $this->service(5, 13, ['hotel' => null, 'supplier' => 903]),
         ];
         (new SamoSync($fake))->run(true);
 
@@ -95,13 +96,14 @@ class SamoSyncTest extends TestCase
         $this->assertEquals(1, DB::table('partners')->where('samo_inc', 901)->value('is_turkish'));
         $this->assertEquals(0, DB::table('partners')->where('samo_inc', 903)->value('is_turkish'));
         $this->assertEquals(1, DB::table('partners')->where('samo_inc', 903)->value('is_supplier'));
+        $this->assertEquals(1, DB::table('claims')->where('samo_inc', 13)->value('country'));
         $this->assertSame('Хотел А', DB::table('places')->where('kind', 'hotel')->value('name'));
 
         // повторно теглене: изтритата в SAMO услуга изчезва; ръчно махнатият „турски“ остава махнат
         DB::table('partners')->where('samo_inc', 901)->update(['is_turkish' => false, 'turkish_manual' => true]);
         $fake->services = array_values(array_filter($fake->services, fn ($s) => $s['inc'] !== 2));
         (new SamoSync($fake))->run(true);
-        $this->assertSame(3, DB::table('services')->count());
+        $this->assertSame(4, DB::table('services')->count());
         $this->assertEquals(1000, (float) DB::table('claims')->where('samo_inc', 10)->value('sale'));
         $this->assertEquals(0, DB::table('partners')->where('samo_inc', 901)->value('is_turkish'));
         $this->assertSame(2, DB::table('sync_runs')->whereNotNull('finished_at')->count());

@@ -27,6 +27,7 @@ class SqlSamoSource implements SamoSource
         $pax = $this->hasColumn('dbo.people', 'claim')
             ? 'OUTER APPLY (SELECT COUNT(*) AS pax FROM dbo.people pe WHERE pe.claim = cl.inc) p'
             : 'OUTER APPLY (SELECT CAST(NULL AS int) AS pax) p';
+        $state = $this->hasColumn('dbo.claim', 'state') ? 'cl.state' : 'CAST(NULL AS int)';
         $where = 'cl.inc > ?';
         $bind = [$afterInc];
         if ($since !== null) {
@@ -40,7 +41,7 @@ class SqlSamoSource implements SamoSource
                    CONVERT(char(10), cl.datebeg, 23) AS date_from, CONVERT(char(10), cl.dateend, 23) AS date_to,
                    cl.nights, cl.status, CONVERT(char(10), cl.canceldate, 23) AS cancelled_on,
                    CAST(cl.commission AS varchar(20)) AS commission_pct,
-                   CONVERT(char(19), cl.edate, 120) AS changed_at, p.pax
+                   CONVERT(char(19), cl.edate, 120) AS changed_at, p.pax, $state AS country
             FROM dbo.claim cl
             $pax
             WHERE $where
@@ -59,6 +60,7 @@ class SqlSamoSource implements SamoSource
             'commission_pct' => self::int($r->commission_pct) === null ? null : trim((string) $r->commission_pct),
             'changed_at' => $r->changed_at ? trim((string) $r->changed_at) : null,
             'pax' => self::int($r->pax),
+            'country' => self::int($r->country),
         ], $rows);
     }
 
@@ -116,10 +118,19 @@ class SqlSamoSource implements SamoSource
         if (! $incs) {
             return [];
         }
+        // държавата: от колона в dbo.partner, ако я има; иначе — от града на партньора (dbo.partner.town → dbo.town.state)
         $c = config('restrstat.partner_country_column');
-        $country = $c && $this->hasColumn('dbo.partner', $c) ? "p.[$c]" : 'CAST(NULL AS int)';
+        $join = '';
+        if ($c && $this->hasColumn('dbo.partner', $c)) {
+            $country = "p.[$c]";
+        } elseif ($this->hasColumn('dbo.partner', 'town') && $this->hasColumn('dbo.town', 'state')) {
+            $country = 't.state';
+            $join = 'LEFT JOIN dbo.town t ON t.inc = p.town';
+        } else {
+            $country = 'CAST(NULL AS int)';
+        }
         $in = implode(',', array_map('intval', $incs));
-        $rows = $this->db->select("SELECT p.inc, p.name, $country AS country FROM dbo.partner p WHERE p.inc IN ($in)");
+        $rows = $this->db->select("SELECT p.inc, p.name, $country AS country FROM dbo.partner p $join WHERE p.inc IN ($in)");
 
         return array_map(fn ($r) => ['inc' => (int) $r->inc, 'name' => self::text($r->name), 'country' => self::int($r->country)], $rows);
     }

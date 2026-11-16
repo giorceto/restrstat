@@ -76,9 +76,11 @@ class SamoCheckCommand extends Command
         $this->newLine();
         $this->line('Колоните на услугите, които ползваме (config/restrstat.php → order_columns):');
         $orderCols = $source->columns('dbo.order');
-        foreach (config('restrstat.order_columns') as $key => $col) {
+        foreach (array_filter(config('restrstat.order_columns')) as $key => $col) {
             $this->line(sprintf('  %-10s → %-10s %s', $key, $col, in_array(strtolower($col), $orderCols, true) ? '✓' : '✗ липсва'));
         }
+
+        $this->line('  town, country — от хотела (dbo.hotel.town → dbo.town.state) и от dbo.claim.state');
 
         return self::SUCCESS;
     }

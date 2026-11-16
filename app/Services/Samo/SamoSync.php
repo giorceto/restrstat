@@ -106,7 +106,7 @@ class SamoSync
                 'status' => $c['status'], 'cancelled' => $cancelled, 'cancelled_on' => $cancelledOn?->toDateString(),
                 'cancel_lead_days' => $cancelled && $cancelledOn && $from ? (int) $cancelledOn->diffInDays($from, false) : null,
                 'pax' => $c['pax'],
-                'country' => $m['country'] ?? null, 'town' => $m['town'] ?? null, 'hotel' => $m['hotel'] ?? null,
+                'country' => $m['country'] ?? ($c['country'] ?? null), 'town' => $m['town'] ?? null, 'hotel' => $m['hotel'] ?? null,
                 'sale' => Cents::str($sale), 'net' => Cents::str($net), 'commission' => Cents::str($commission),
                 'margin' => Cents::str($sale - $net - $commission), 'commission_pct' => $c['commission_pct'],
                 'unconverted' => $unconverted, 'changed_at' => $c['changed_at'], 'synced_at' => $now,
@@ -188,25 +188,22 @@ class SamoSync
 
     private function fillFromParents(): void
     {
+        // по една заявка за хотел/град (не за ред)
         $hotelTown = DB::table('places')->where('kind', 'hotel')->whereNotNull('parent')->pluck('parent', 'samo_inc');
         $townCountry = DB::table('places')->where('kind', 'town')->whereNotNull('parent')->pluck('parent', 'samo_inc');
         foreach (['claims', 'services'] as $table) {
-            DB::table($table)->whereNotNull('hotel')->whereNull('town')->orderBy('id')->select('id', 'hotel')
-                ->chunkById(1000, function ($rows) use ($table, $hotelTown) {
-                    foreach ($rows as $r) {
-                        if (isset($hotelTown[$r->hotel])) {
-                            DB::table($table)->where('id', $r->id)->update(['town' => $hotelTown[$r->hotel]]);
-                        }
-                    }
-                });
-            DB::table($table)->whereNotNull('town')->whereNull('country')->orderBy('id')->select('id', 'town')
-                ->chunkById(1000, function ($rows) use ($table, $townCountry) {
-                    foreach ($rows as $r) {
-                        if (isset($townCountry[$r->town])) {
-                            DB::table($table)->where('id', $r->id)->update(['country' => $townCountry[$r->town]]);
-                        }
-                    }
-                });
+            $hotels = DB::table($table)->whereNotNull('hotel')->whereNull('town')->distinct()->pluck('hotel');
+            foreach ($hotels as $h) {
+                if (isset($hotelTown[$h])) {
+                    DB::table($table)->where('hotel', $h)->whereNull('town')->update(['town' => $hotelTown[$h]]);
+                }
+            }
+            $towns = DB::table($table)->whereNotNull('town')->whereNull('country')->distinct()->pluck('town');
+            foreach ($towns as $t) {
+                if (isset($townCountry[$t])) {
+                    DB::table($table)->where('town', $t)->whereNull('country')->update(['country' => $townCountry[$t]]);
+                }
+            }
         }
     }
 
