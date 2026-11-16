@@ -343,4 +343,39 @@ class Statistics
             'rows' => array_values($claims),
         ];
     }
+
+    /**
+     * Салдо по доставчик, без филтрите по период: всичко дължимо (активни заявки, с настаняване от $from), от него — с настаняване до днес,
+     * платено (въведените плащания) и остатък.
+     *
+     * @param  list<int>  $suppliers
+     * @return array<int, array{owed: float, owed_to_date: float, paid: float, balance: float, due_now: float, last_paid: ?string}>
+     */
+    public function balances(array $suppliers, ?CarbonImmutable $from = null): array
+    {
+        if (! $suppliers) {
+            return [];
+        }
+        $today = CarbonImmutable::today()->toDateString();
+        $owed = DB::table('services as s')->join('claims as c', 'c.samo_inc', '=', 's.claim')
+            ->whereIn('s.supplier', $suppliers)->where('c.cancelled', false)->where('s.unconverted', false)
+            // салдото се води от началната дата (по-старото е платено преди да въвеждаме плащания тук)
+            ->when($from, fn ($q) => $q->where('s.date_from', '>=', $from->toDateString()))
+            ->selectRaw('s.supplier, COALESCE(SUM(s.net), 0) AS owed,
+                COALESCE(SUM(CASE WHEN s.date_from <= ? THEN s.net ELSE 0 END), 0) AS owed_to_date', [$today])
+            ->groupBy('s.supplier')->get()->keyBy('supplier');
+        $paid = DB::table('supplier_payments')->whereIn('supplier', $suppliers)
+            ->selectRaw('supplier, COALESCE(SUM(amount), 0) AS paid, MAX(paid_on) AS last_paid')
+            ->groupBy('supplier')->get()->keyBy('supplier');
+        $out = [];
+        foreach ($suppliers as $id) {
+            $o = (float) ($owed[$id]->owed ?? 0);
+            $t = (float) ($owed[$id]->owed_to_date ?? 0);
+            $p = (float) ($paid[$id]->paid ?? 0);
+            $out[$id] = ['owed' => round($o, 2), 'owed_to_date' => round($t, 2), 'paid' => round($p, 2),
+                'balance' => round($o - $p, 2), 'due_now' => round($t - $p, 2), 'last_paid' => $paid[$id]->last_paid ?? null];
+        }
+
+        return $out;
+    }
 }

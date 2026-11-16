@@ -27,6 +27,7 @@ class AppServiceProvider extends ServiceProvider
         }
 
         Blade::directive('eur', fn ($e) => "<?php echo \\App\\Support\\Fmt::eur($e); ?>");
+        Blade::directive('eur2', fn ($e) => "<?php echo \\App\\Support\\Fmt::eur2($e); ?>");
         Blade::directive('num', fn ($e) => "<?php echo \\App\\Support\\Fmt::num($e); ?>");
         Blade::directive('pct', fn ($e) => "<?php echo \\App\\Support\\Fmt::pct($e); ?>");
         Blade::directive('delta', fn ($e) => "<?php echo \\App\\Support\\Fmt::delta($e); ?>");

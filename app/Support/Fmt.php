@@ -15,6 +15,12 @@ final class Fmt
         return $v === null ? '—' : self::num($v).' €';
     }
 
+    /** С центовете — за задълженията и плащанията. */
+    public static function eur2(int|float|null $v): string
+    {
+        return $v === null ? '—' : self::num($v, 2).' €';
+    }
+
     public static function pct(int|float|null $v): string
     {
         return $v === null ? '—' : self::num($v, 1).' %';

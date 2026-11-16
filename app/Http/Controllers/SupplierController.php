@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\SupplierPayment;
 use App\Services\Filters;
 use App\Services\Statistics;
+use App\Support\Settings;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -24,10 +26,58 @@ class SupplierController extends Controller
             return $this->csv($supplier, $result);
         }
 
+        $ids = $supplier ? [$supplier] : $suppliers->pluck('samo_inc')->map(fn ($i) => (int) $i)->all();
+        $balanceFrom = Filters::date(Settings::get('balance_from'));
+        $balances = $stats->balances($ids, $balanceFrom);
+
         return view('suppliers.index', [
             'suppliers' => $suppliers, 'supplier' => $supplier, 'all' => $all, 'filters' => $filters, 'result' => $result,
             'supplierName' => $supplier ? DB::table('partners')->where('samo_inc', $supplier)->value('name') : null,
+            'balances' => $balances, 'balanceFrom' => $balanceFrom,
+            'payments' => $supplier ? SupplierPayment::with('user')->where('supplier', $supplier)->orderByDesc('paid_on')->orderByDesc('id')->get() : collect(),
+            'banks' => SupplierPayment::whereNotNull('bank')->distinct()->orderBy('bank')->pluck('bank'),
         ]);
+    }
+
+    public function storePayment(Request $request, int $supplier)
+    {
+        abort_unless(DB::table('partners')->where('samo_inc', $supplier)->exists(), 404);
+        $request->merge(['amount' => str_replace([' ', ','], ['', '.'], (string) $request->input('amount'))]);
+        $data = $request->validate([
+            'paid_on' => ['required', 'string'],
+            'amount' => ['required', 'numeric', 'gt:0', 'max:9999999'],
+            'document_no' => ['nullable', 'string', 'max:64'],
+            'bank' => ['nullable', 'string', 'max:100'],
+        ], [], ['paid_on' => 'дата', 'amount' => 'сума', 'document_no' => 'номер на документ', 'bank' => 'сметка/банка']);
+        $date = Filters::date($data['paid_on']);
+        if (! $date) {
+            return back()->withInput()->withErrors(['paid_on' => 'Датата трябва да е дд.мм.гггг.']);
+        }
+        SupplierPayment::create([
+            'supplier' => $supplier, 'paid_on' => $date->toDateString(), 'amount' => round((float) $data['amount'], 2),
+            'document_no' => $data['document_no'] ?: null, 'bank' => $data['bank'] ?: null, 'user_id' => $request->user()->id,
+        ]);
+
+        return back()->with('status', 'Плащането е записано.');
+    }
+
+    public function saveBalanceFrom(Request $request)
+    {
+        $value = trim((string) $request->input('balance_from'));
+        $date = $value === '' ? null : Filters::date($value);
+        if ($value !== '' && ! $date) {
+            return back()->withErrors(['balance_from' => 'Датата трябва да е дд.мм.гггг.']);
+        }
+        Settings::set('balance_from', $date?->toDateString());
+
+        return back()->with('status', $date ? 'Салдото се смята от настаняване '.$date->format('d.m.Y').'.' : 'Салдото се смята от всички заявки.');
+    }
+
+    public function destroyPayment(SupplierPayment $payment)
+    {
+        $payment->delete();
+
+        return back()->with('status', 'Плащането е изтрито.');
     }
 
     private function csv(int $supplier, array $result)

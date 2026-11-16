@@ -83,3 +83,5 @@ input.date, input.date + input { width: 120px; }
 .flatpickr-calendar { font-size: 13px; }
 :root[data-theme="dark"] .flatpickr-calendar { filter: invert(.9) hue-rotate(180deg); }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .flatpickr-calendar { filter: invert(.9) hue-rotate(180deg); } }
+.linkbtn { background: none; border: 0; padding: 0; color: var(--down); cursor: pointer; font: inherit; }
+.kpi .v.down { color: var(--down); }

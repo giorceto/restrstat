@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex, nofollow">
 <title>@yield('title', 'Статистики') · Tours Club</title>
 <link rel="stylesheet" href="{{ asset('vendor/flatpickr/flatpickr.min.css') }}?v=4.6.13">
-<link rel="stylesheet" href="{{ asset('css/app.css') }}?v=2">
+<link rel="stylesheet" href="{{ asset('css/app.css') }}?v=3">
 </head>
 <body>
 @auth
