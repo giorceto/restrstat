@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\SupplierPayment;
 use App\Services\Filters;
+use App\Services\PayeeRouting;
 use App\Services\Statistics;
 use App\Support\Settings;
 use Carbon\CarbonImmutable;
@@ -113,7 +114,7 @@ class SupplierController extends Controller
     {
         return view('suppliers.setup', [
             'suppliers' => DB::table('partners')->where('is_supplier', true)->orderByDesc('is_turkish')->orderBy('name')
-                ->get(['samo_inc', 'name', 'is_turkish', 'turkish_manual', 'country']),
+                ->get(['samo_inc', 'name', 'is_turkish', 'turkish_manual', 'country', 'follows_hotel']),
             'countries' => DB::table('places')->where('kind', 'country')->pluck('name', 'samo_inc'),
         ]);
     }
@@ -122,7 +123,10 @@ class SupplierController extends Controller
     {
         $turkish = array_map('intval', (array) $request->input('turkish', []));
         $shown = array_map('intval', (array) $request->input('shown', []));
-        DB::transaction(function () use ($turkish, $shown) {
+        $follow = array_map('intval', (array) $request->input('follows_hotel', []));
+        DB::transaction(function () use ($turkish, $shown, $follow) {
+            DB::table('partners')->whereIn('samo_inc', $shown)->update(['follows_hotel' => false]);
+            DB::table('partners')->whereIn('samo_inc', array_intersect($follow, $shown))->update(['follows_hotel' => true]);
             foreach (DB::table('partners')->whereIn('samo_inc', $shown)->get(['samo_inc', 'is_turkish']) as $p) {
                 $want = in_array((int) $p->samo_inc, $turkish, true);
                 if ((bool) $p->is_turkish !== $want) {
@@ -130,6 +134,8 @@ class SupplierController extends Controller
                 }
             }
         });
+
+        (new PayeeRouting)->apply();
 
         return redirect()->route('suppliers.setup')->with('status', 'Записано.');
     }

@@ -3,6 +3,7 @@
 namespace App\Services\Samo;
 
 use App\Models\SyncRun;
+use App\Services\PayeeRouting;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Throwable;
@@ -41,6 +42,7 @@ class SamoSync
                 }
             }
             $this->names();
+            (new PayeeRouting)->apply();
         } catch (Throwable $e) {
             $run->error = mb_substr($e->getMessage(), 0, 2000);
             $run->finished_at = now();
@@ -81,7 +83,7 @@ class SamoSync
                     $main = [$score, $s];
                 }
                 $serviceRows[] = [
-                    'samo_inc' => $s['inc'], 'claim' => $c['inc'], 'supplier' => $s['supplier'],
+                    'samo_inc' => $s['inc'], 'claim' => $c['inc'], 'supplier' => $s['supplier'], 'payee' => $s['supplier'],
                     'country' => $s['country'], 'town' => $s['town'], 'hotel' => $s['hotel'],
                     'date_from' => $s['date_from'] ?? $c['date_from'], 'date_to' => $s['date_to'] ?? $c['date_to'],
                     'status' => $s['status'], 'sale' => Cents::str(Cents::from($s['sale'])), 'net' => Cents::str(Cents::from($s['net'])),

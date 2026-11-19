@@ -96,7 +96,7 @@
       <tbody>
       @forelse ($result['rows'] as $r)
         <tr><td>{{ $r->claim }}</td><td>{{ Fmt::date(substr($r->created_at, 0, 10)) }}</td><td>{{ Fmt::date($r->date_from) }}</td><td>{{ Fmt::date($r->date_to) }}</td>
-          <td>{{ $r->pax ?? '—' }}</td><td>{{ $r->place ?? '—' }}</td><td>{{ $r->services }}</td><td>{{ Fmt::num($r->net, 2) }}</td>
+          <td>{{ $r->pax ?? '—' }}</td><td>{{ $r->place ?? '—' }}</td><td>{{ $r->services }}@foreach ($r->via as $vn => $vs)<div class="note">вкл. {{ $vn }} {{ Fmt::num($vs, 2) }}</div>@endforeach</td><td>{{ Fmt::num($r->net, 2) }}</td>
           <td class="muted">{{ implode(', ', $r->other) }}</td></tr>
       @empty
         <tr><td colspan="9" class="muted">Няма услуги от тази фирма за избраните периоди.</td></tr>
@@ -105,7 +105,8 @@
       </tbody>
     </table></div>
     <p class="note">Периодът на продажба е по датата на създаване на заявката; на настаняване — по началото на услугата.
-      Плащанията се приспадат от общото салдо горе (не по периоди).</p>
+      Плащанията се приспадат от общото салдо горе (не по периоди).
+      Услугите на доставчици „към хотела“ (напр. трансфери) се водят тук, ако хотелът в заявката е от тази фирма.</p>
   </div>
 @endif
 @endsection

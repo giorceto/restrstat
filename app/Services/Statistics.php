@@ -293,7 +293,7 @@ class Statistics
     public function obligations(int $supplier, ?CarbonImmutable $soldFrom, ?CarbonImmutable $soldTo, ?CarbonImmutable $inFrom, ?CarbonImmutable $inTo): array
     {
         $q = DB::table('services as s')->join('claims as c', 'c.samo_inc', '=', 's.claim')
-            ->where('s.supplier', $supplier)->where('c.cancelled', false);
+            ->whereRaw('COALESCE(s.payee, s.supplier) = ?', [$supplier])->where('c.cancelled', false);
         if ($soldFrom) {
             $q->where('c.created_at', '>=', $soldFrom->format('Y-m-d 00:00:00'));
         }
@@ -308,15 +308,22 @@ class Statistics
         }
         $rows = $q->orderBy('s.date_from')->orderBy('c.samo_inc')
             ->get(['c.samo_inc as claim', 'c.created_at', 's.date_from', 's.date_to', 'c.pax', 's.hotel', 's.town',
-                's.net', 's.net_currency', 's.net_original', 's.unconverted']);
+                's.net', 's.net_currency', 's.net_original', 's.unconverted', 's.supplier']);
+        $viaNames = DB::table('partners')->whereIn('samo_inc', $rows->where('supplier', '!=', $supplier)->pluck('supplier')->unique()->all())
+            ->pluck('name', 'samo_inc');
         $hotels = $this->names('hotel', $rows->pluck('hotel')->filter()->unique()->all());
         $towns = $this->names('town', $rows->pluck('town')->filter()->unique()->all());
         // по заявка: един ред със сумата на услугите от доставчика
         $claims = [];
         foreach ($rows as $r) {
             $c = $claims[$r->claim] ??= (object) ['claim' => $r->claim, 'created_at' => $r->created_at, 'date_from' => $r->date_from,
-                'date_to' => $r->date_to, 'pax' => $r->pax, 'place' => null, 'services' => 0, 'net' => 0, 'unconverted' => 0, 'other' => []];
+                'date_to' => $r->date_to, 'pax' => $r->pax, 'place' => null, 'services' => 0, 'net' => 0, 'unconverted' => 0, 'other' => [], 'via' => []];
             $c->services++;
+            // услуга на друг доставчик, пренасочена тук (напр. трансфер към доставчика на хотела)
+            if ((int) $r->supplier !== $supplier && ! $r->unconverted) {
+                $name = $viaNames[$r->supplier] ?? '№ '.$r->supplier;
+                $c->via[$name] = ($c->via[$name] ?? 0) + (float) $r->net;
+            }
             $from = array_filter([$c->date_from, $r->date_from]);
             $to = array_filter([$c->date_to, $r->date_to]);
             $c->date_from = $from ? min($from) : null;
@@ -358,12 +365,12 @@ class Statistics
         }
         $today = CarbonImmutable::today()->toDateString();
         $owed = DB::table('services as s')->join('claims as c', 'c.samo_inc', '=', 's.claim')
-            ->whereIn('s.supplier', $suppliers)->where('c.cancelled', false)->where('s.unconverted', false)
+            ->whereIn(DB::raw('COALESCE(s.payee, s.supplier)'), $suppliers)->where('c.cancelled', false)->where('s.unconverted', false)
             // салдото се води от началната дата (по-старото е платено преди да въвеждаме плащания тук)
             ->when($from, fn ($q) => $q->where('s.date_from', '>=', $from->toDateString()))
-            ->selectRaw('s.supplier, COALESCE(SUM(s.net), 0) AS owed,
+            ->selectRaw('COALESCE(s.payee, s.supplier) AS supplier, COALESCE(SUM(s.net), 0) AS owed,
                 COALESCE(SUM(CASE WHEN s.date_from <= ? THEN s.net ELSE 0 END), 0) AS owed_to_date', [$today])
-            ->groupBy('s.supplier')->get()->keyBy('supplier');
+            ->groupByRaw('COALESCE(s.payee, s.supplier)')->get()->keyBy('supplier');
         $paid = DB::table('supplier_payments')->whereIn('supplier', $suppliers)
             ->selectRaw('supplier, COALESCE(SUM(amount), 0) AS paid, MAX(paid_on) AS last_paid')
             ->groupBy('supplier')->get()->keyBy('supplier');
