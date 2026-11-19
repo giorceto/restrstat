@@ -6,6 +6,7 @@ use App\Models\SupplierPayment;
 use App\Services\Filters;
 use App\Services\Statistics;
 use App\Support\Settings;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -20,20 +21,23 @@ class SupplierController extends Controller
             ->orderBy('name')->get(['samo_inc', 'name']);
         $supplier = $request->integer('supplier') ?: null;
         $d = fn (string $k) => Filters::date($request->query($k));
+        $balanceFrom = self::balanceFrom();
         $filters = ['sold_from' => $d('sold_from'), 'sold_to' => $d('sold_to'), 'in_from' => $d('in_from'), 'in_to' => $d('in_to')];
+        // без зададено „настаняване от“ — от началото на отчитането; по-старо — само ако се зададе изрично
+        $inFromDefault = $filters['in_from'] === null;
+        $filters['in_from'] ??= $balanceFrom;
         $result = $supplier ? $stats->obligations($supplier, ...array_values($filters)) : null;
         if ($result && $request->query('export') === 'csv') {
             return $this->csv($supplier, $result);
         }
 
         $ids = $supplier ? [$supplier] : $suppliers->pluck('samo_inc')->map(fn ($i) => (int) $i)->all();
-        $balanceFrom = Filters::date(Settings::get('balance_from'));
         $balances = $stats->balances($ids, $balanceFrom);
 
         return view('suppliers.index', [
             'suppliers' => $suppliers, 'supplier' => $supplier, 'all' => $all, 'filters' => $filters, 'result' => $result,
             'supplierName' => $supplier ? DB::table('partners')->where('samo_inc', $supplier)->value('name') : null,
-            'balances' => $balances, 'balanceFrom' => $balanceFrom,
+            'balances' => $balances, 'balanceFrom' => $balanceFrom, 'inFromDefault' => $inFromDefault,
             'payments' => $supplier ? SupplierPayment::with('user')->where('supplier', $supplier)->orderByDesc('paid_on')->orderByDesc('id')->get() : collect(),
             'banks' => SupplierPayment::whereNotNull('bank')->distinct()->orderBy('bank')->pluck('bank'),
         ]);
@@ -61,6 +65,12 @@ class SupplierController extends Controller
         return back()->with('status', 'Плащането е записано.');
     }
 
+    /** Началото на отчитането: зададеното от страницата или restrstat.supplier_start (01.11.2026). */
+    public static function balanceFrom(): ?CarbonImmutable
+    {
+        return Filters::date(Settings::get('balance_from')) ?? Filters::date(config('restrstat.supplier_start'));
+    }
+
     public function saveBalanceFrom(Request $request)
     {
         $value = trim((string) $request->input('balance_from'));
@@ -70,7 +80,9 @@ class SupplierController extends Controller
         }
         Settings::set('balance_from', $date?->toDateString());
 
-        return back()->with('status', $date ? 'Салдото се смята от настаняване '.$date->format('d.m.Y').'.' : 'Салдото се смята от всички заявки.');
+        $from = self::balanceFrom();
+
+        return back()->with('status', 'Задълженията се водят от настаняване '.($from?->format('d.m.Y') ?? '—').'.');
     }
 
     public function destroyPayment(SupplierPayment $payment)

@@ -19,6 +19,8 @@ class SupplierPaymentsTest extends TestCase
         DB::table('claims')->insert([$claim(1, now()->subDays(10)->toDateString()), $claim(2, now()->addDays(30)->toDateString()),
             $claim(3, now()->subDays(5)->toDateString(), true)]);
         $svc = fn ($inc, $claim, $from, $net) => ['samo_inc' => $inc, 'claim' => $claim, 'supplier' => 901, 'date_from' => $from, 'net' => $net];
+        DB::table('claims')->insert($claim(4, '2026-08-01'));
+        DB::table('services')->insert([['samo_inc' => 4, 'claim' => 4, 'supplier' => 901, 'date_from' => '2026-08-01', 'net' => 7777]]);
         DB::table('services')->insert([$svc(1, 1, now()->subDays(10)->toDateString(), 1000), $svc(2, 2, now()->addDays(30)->toDateString(), 500),
             $svc(3, 3, now()->subDays(5)->toDateString(), 9999)]);
     }
@@ -40,11 +42,11 @@ class SupplierPaymentsTest extends TestCase
         $this->post('/suppliers/901/payments', ['paid_on' => '01.11.2026', 'amount' => '-5'])->assertSessionHasErrors('amount');
         $this->post('/suppliers/999/payments', ['paid_on' => '01.11.2026', 'amount' => '5'])->assertNotFound();
 
-        // 1500 дължимо (анулираната не се брои), 1000 от тях — настанени до днес; платено 300,50
+        // от 01.11.2026: 1500 дължимо (анулираната и августовската не се броят), 1000 от тях — настанени до днес; платено 300,50
         $this->get('/suppliers?supplier=901')->assertOk()
             ->assertSee('1 199,50 €')   // остатък общо
             ->assertSee('699,50 €')     // остатък до днес
-            ->assertSee('TR-1')->assertSee('Банка ДСК');
+            ->assertSee('TR-1')->assertSee('Банка ДСК')->assertDontSee('7 777,00');
         $this->get('/suppliers')->assertOk()->assertSee('Салдо по фирми')->assertSee('1 199,50 €');
 
         // начална дата на салдото: услугата отпреди 10 дни отпада → 500 − 300,50
@@ -53,6 +55,8 @@ class SupplierPaymentsTest extends TestCase
         $this->post('/suppliers/balance-from', ['balance_from' => '99.99.2026'])->assertSessionHasErrors('balance_from');
         $this->post('/suppliers/balance-from', ['balance_from' => ''])->assertRedirect();
         $this->get('/suppliers?supplier=901')->assertSee('1 199,50 €');
+        // по-старото (август) — само по справка
+        $this->get('/suppliers?supplier=901&in_from=01.08.2026')->assertSee('7 777,00')->assertSee('Дължимо за избрания период');
 
         $id = DB::table('supplier_payments')->value('id');
         $this->delete("/suppliers/payments/$id")->assertRedirect();

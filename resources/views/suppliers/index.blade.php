@@ -12,7 +12,7 @@
   </label>
   <label>Продадени от <input type="text" class="date" placeholder="дд.мм.гггг" autocomplete="off" name="sold_from" value="{{ $v('sold_from') }}"></label>
   <label>до <input type="text" class="date" placeholder="дд.мм.гггг" autocomplete="off" name="sold_to" value="{{ $v('sold_to') }}"></label>
-  <label>Настаняване от <input type="text" class="date" placeholder="дд.мм.гггг" autocomplete="off" name="in_from" value="{{ $v('in_from') }}"></label>
+  <label>Настаняване от <input type="text" class="date" placeholder="{{ $inFromDefault && $filters['in_from'] ? $filters['in_from']->format('d.m.Y') : 'дд.мм.гггг' }}" autocomplete="off" name="in_from" value="{{ $inFromDefault ? '' : $v('in_from') }}"></label>
   <label>до <input type="text" class="date" placeholder="дд.мм.гггг" autocomplete="off" name="in_to" value="{{ $v('in_to') }}"></label>
   @if ($all)<input type="hidden" name="all" value="1">@endif
   <button class="btn">Покажи</button>
@@ -27,10 +27,10 @@
 @if (session('status'))<p class="ok">{{ session('status') }}</p>@endif
 <form method="post" action="{{ route('suppliers.balance-from') }}" class="note" style="margin:-6px 0 12px; display:flex; gap:8px; align-items:center; flex-wrap:wrap">
   @csrf
-  <span>Салдото (дължимо − платено) се смята за услуги с настаняване от</span>
-  <input type="text" class="date" placeholder="всички" autocomplete="off" name="balance_from" value="{{ $balanceFrom?->toDateString() }}">
+  <span>Задълженията се водят от настаняване</span>
+  <input type="text" class="date" placeholder="{{ \App\Support\Fmt::date(config('restrstat.supplier_start')) }}" autocomplete="off" name="balance_from" value="{{ $balanceFrom?->toDateString() }}">
   <button class="btn" style="padding:4px 10px">Запиши</button>
-  @unless ($balanceFrom)<span class="down">— не е зададено: брои се всичко от SAMO, а старите плащания ги няма тук</span>@endunless
+  <span>— по-стари само по справка: задай по-ранно „Настаняване от“ горе</span>
   @error('balance_from')<span class="err">{{ $message }}</span>@enderror
 </form>
 @if (! $supplier && $suppliers->isNotEmpty())
@@ -53,9 +53,9 @@
   </div>
 @endif
 @if ($result)
-  @php $b = $balances[$supplier]; $hasFilter = array_filter($filters); @endphp
+  @php $b = $balances[$supplier]; $hasFilter = array_filter($inFromDefault ? array_diff_key($filters, ['in_from' => 1]) : $filters); @endphp
   <div class="kpis">
-    <div class="kpi"><div class="l">{{ $hasFilter ? 'Дължимо за избрания период' : 'Дължимо общо' }}</div><div class="v">@eur2($result['total'])</div><div class="s">{{ $result['claims'] }} заявки, {{ $result['services'] }} услуги, без анулираните</div></div>
+    <div class="kpi"><div class="l">{{ $hasFilter ? 'Дължимо за избрания период' : 'Дължимо от '.$balanceFrom?->format('d.m.Y') }}</div><div class="v">@eur2($result['total'])</div><div class="s">{{ $result['claims'] }} заявки, {{ $result['services'] }} услуги, без анулираните</div></div>
     <div class="kpi"><div class="l">Платено общо</div><div class="v">@eur2($b['paid'])</div><div class="s">{{ $payments->count() }} плащания · последно {{ Fmt::date($b['last_paid']) }}</div></div>
     <div class="kpi"><div class="l">Остатък общо</div><div class="v">@eur2($b['balance'])</div><div class="s">{{ $balanceFrom ? 'настаняване от '.$balanceFrom->format('d.m.Y') : 'всички заявки' }} ({{ Fmt::num($b['owed'], 2) }} €) − платено</div></div>
     <div class="kpi"><div class="l">Остатък до днес</div><div class="v {{ $b['due_now'] > 0 ? 'down' : '' }}">@eur2($b['due_now'])</div><div class="s">настанени до днес ({{ Fmt::num($b['owed_to_date'], 2) }} €) − платено</div></div>
