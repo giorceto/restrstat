@@ -92,6 +92,26 @@ class Statistics
         return $out;
     }
 
+    /**
+     * Оборот по канали (без анулираните) — за дяловете на таблото.
+     *
+     * @return list<array{channel: string, label: string, sale: float, claims: int, share: ?float}>
+     */
+    public function byChannel(Filters $f): array
+    {
+        $rows = $this->active($f)->selectRaw('channel, COUNT(*) AS claims, COALESCE(SUM(sale), 0) AS sale')
+            ->groupBy('channel')->get()->keyBy('channel');
+        $total = (float) $rows->sum('sale');
+        $out = [];
+        foreach (['own', 'online', 'agency'] as $ch) {
+            $sale = (float) ($rows[$ch]->sale ?? 0);
+            $out[] = ['channel' => $ch, 'label' => Filters::CHANNELS[$ch], 'sale' => $sale, 'claims' => (int) ($rows[$ch]->claims ?? 0),
+                'share' => $total > 0 ? round(100 * $sale / $total, 1) : null];
+        }
+
+        return $out;
+    }
+
     /** @return array<int, string> */
     public function names(string $kind, array $ids): array
     {

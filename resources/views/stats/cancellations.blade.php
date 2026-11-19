@@ -2,8 +2,7 @@
 @section('title', 'Анулации')
 @php use App\Support\Fmt; @endphp
 @section('content')
-<h1>Анулации</h1>
-@include('partials.filters')
+@include('partials.filters', ['title' => 'Анулации'])
 <div class="kpis">
   <div class="kpi"><div class="l">Анулирани</div><div class="v">@pct($total['cancel_pct'])</div><div class="s">{{ $total['cancelled'] }} от {{ $total['all'] }} заявки · преди година: @pct($ly['cancel_pct'])</div></div>
   <div class="kpi"><div class="l">Останали активни</div><div class="v">@num($total['claims'])</div><div class="s">преди година: @num($ly['claims'])</div></div>

@@ -33,9 +33,44 @@ final class Fmt
             return '<span class="muted">—</span>';
         }
         $cls = $v > 0 ? 'up' : ($v < 0 ? 'down' : 'muted');
-        $sign = $v > 0 ? '▲ +' : ($v < 0 ? '▼ ' : '');
+        $sign = $v > 0 ? '▲ ' : ($v < 0 ? '▼ ' : '');
 
-        return '<span class="'.$cls.'">'.$sign.self::num($v, 1).' %</span>';
+        return '<span class="delta '.$cls.'">'.$sign.self::num(abs($v), 1).' %</span>';
+    }
+
+    /** Промяна като значка (зелена/червена). */
+    public static function badge(int|float|null $v): string
+    {
+        if ($v === null) {
+            return '';
+        }
+        $cls = $v > 0 ? 'up' : ($v < 0 ? 'down' : 'flat');
+        $sign = $v > 0 ? '▲ ' : ($v < 0 ? '▼ ' : '');
+
+        return '<span class="badge '.$cls.'">'.$sign.self::num(abs($v), 1).' %</span>';
+    }
+
+    /**
+     * Мини графика (стълбчета) като SVG; $current — индексът на текущия месец (по-тъмен).
+     *
+     * @param  list<int|float>  $values
+     */
+    public static function spark(array $values, ?int $current = null): string
+    {
+        $n = count($values);
+        if ($n === 0) {
+            return '';
+        }
+        $max = max(array_map('floatval', $values)) ?: 1;
+        $w = 220 / $n;
+        $out = '<svg class="spark" viewBox="0 0 220 34" preserveAspectRatio="none" aria-hidden="true">';
+        foreach (array_values($values) as $i => $v) {
+            $h = max(2, round(34 * (float) $v / $max, 1));
+            $out .= sprintf('<rect%s x="%.1f" y="%.1f" width="%.1f" height="%.1f" rx="2"/>',
+                $i === $current ? ' class="cur"' : '', $i * $w + 1.5, 34 - $h, max(1, $w - 3), $h);
+        }
+
+        return $out.'</svg>';
     }
 
     /** % промяна от $old до $new. */

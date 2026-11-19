@@ -1,5 +1,5 @@
 <div class="card">
-  <h2>По месеци — таблица</h2>
+  <div class="card-h"><h2>По месеци — таблица</h2></div>
   <div class="tbl-wrap"><table>
     <thead><tr><th>Месец</th><th>Заявки</th><th>Туристи</th><th>Оборот</th><th>Марж</th><th>Марж %</th><th>Средно на заявка</th><th>Оборот преди година</th><th>Промяна</th></tr></thead>
     <tbody>

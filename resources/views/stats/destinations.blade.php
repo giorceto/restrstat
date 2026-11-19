@@ -8,8 +8,7 @@
            'margin_pct' => 'Марж %', 'avg_sale' => 'Ср. на заявка', 'change_pct' => 'Оборот спрямо '.($f->from->year - 1)];
 @endphp
 @section('content')
-<h1>Дестинации</h1>
-@include('partials.filters', ['keep' => $keep + ['sort' => $sort]])
+@include('partials.filters', ['title' => 'Дестинации', 'keep' => $keep + ['sort' => $sort]])
 <div class="crumbs">
   <a href="{{ route('destinations', $f->query(['sort' => $sort])) }}">Всички държави</a>
   @if ($country) › <a href="{{ route('destinations', $f->query(['country' => $country, 'sort' => $sort])) }}">{{ $countryName }}</a>@endif

@@ -2,12 +2,12 @@
 @section('title', 'Време и сезон')
 @php use App\Support\Fmt; @endphp
 @section('content')
-<h1>Време и сезон</h1>
-@include('partials.filters', ['keep' => ['season' => $year, 'country' => $country]])
+@include('partials.filters', ['title' => 'Време и сезон', 'keep' => ['season' => $year, 'country' => $country]])
 
 <div class="grid g2">
   <div class="card">
     <h2>Оборот по месеци ({{ $f->basis === 'travel' ? 'на настаняване' : 'на продажба' }})</h2>
+    <div class="legend"><span><i class="c1"></i>{{ $f->from->year }}</span><span><i class="cly"></i>{{ $f->from->year - 1 }}</span></div>
     <div class="chart"><canvas data-chart="{{ Fmt::chart(array_column($months, 'label'), ['Сега' => array_column($months, 'sale'), 'Година по-рано' => array_column($months, 'sale_ly')]) }}"></canvas></div>
   </div>
   <div class="card">
@@ -41,6 +41,7 @@
         <div class="s">{!! Fmt::delta(Fmt::change($season['now'][$k], $season['ly'][$k])) !!} · {{ $year - 1 }}: {{ $t === 'eur' ? Fmt::eur($season['ly'][$k]) : Fmt::num($season['ly'][$k]) }}</div></div>
     @endforeach
   </div>
+  <div class="legend" style="margin-bottom:10px"><span><i class="c1"></i>{{ $year }}</span><span><i class="cly"></i>{{ $year - 1 }}</span></div>
   <div class="chart"><canvas data-chart="{{ Fmt::chart(array_column($season['months'], 'label'), [(string) $year => array_column($season['months'], 'sale'), (string) ($year - 1) => array_column($season['months'], 'sale_ly')]) }}"></canvas></div>
   <div class="tbl-wrap"><table>
     <thead><tr><th>Месец на настаняване</th><th>Заявки {{ $year }}</th><th>Заявки {{ $year - 1 }}</th><th>Туристи {{ $year }}</th><th>Туристи {{ $year - 1 }}</th><th>Оборот {{ $year }}</th><th>Оборот {{ $year - 1 }}</th><th>Промяна</th></tr></thead>

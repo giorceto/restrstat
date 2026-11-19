@@ -22,7 +22,8 @@ class StatsController extends Controller
         return view('stats.overview', [
             'f' => $f, 'now' => $now, 'ly' => $ly,
             'months' => $this->stats->byMonth($f),
-            'countries' => array_slice($this->stats->byPlace($f, 'country'), 0, 8),
+            'countries' => array_slice($this->stats->byPlace($f, 'country'), 0, 6),
+            'channels' => $this->stats->byChannel($f),
             'avgLead' => $this->stats->avgLead($f),
             'lastSync' => SyncRun::lastOk(),
         ]);

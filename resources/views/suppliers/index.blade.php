@@ -2,7 +2,7 @@
 @section('title', 'Задължения към доставчици')
 @php use App\Support\Fmt; $v = fn ($k) => $filters[$k]?->toDateString(); @endphp
 @section('content')
-<h1>Задължения към доставчици</h1>
+<div class="head"><div class="t"><h1>Задължения към доставчици</h1><div class="sub">Турски доставчици: дължимо, платено и остатък</div></div></div>
 <form class="card filters" method="get">
   <label>Фирма
     <select name="supplier" style="min-width:260px">

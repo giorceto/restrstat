@@ -1,7 +1,7 @@
 @extends('layouts.app')
 @section('title', 'Турски доставчици')
 @section('content')
-<h1>Кои доставчици са турски</h1>
+<div class="head"><div class="t"><h1>Настройка на доставчиците</h1><div class="sub">Кои са турски и кои се водят към доставчика на хотела</div></div></div>
 @if (session('status'))<p class="ok">{{ session('status') }}</p>@endif
 <form method="post" class="card">
   @csrf
